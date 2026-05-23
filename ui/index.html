@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Fussball-Kommentierung</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: sans-serif; background: #f4f4f4; color: #222; padding: 24px; }
+  h1 { font-size: 1.4rem; margin-bottom: 24px; }
+  .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px;
+          box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+  .card h2 { font-size: 1rem; margin-bottom: 14px; color: #555; }
+  label { display: block; font-size: .85rem; margin-bottom: 4px; color: #444; }
+  select, input[type=file] { width: 100%; padding: 6px 8px; border: 1px solid #ccc;
+                              border-radius: 4px; font-size: .9rem; margin-bottom: 12px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 12px; }
+  button { padding: 10px 22px; border: none; border-radius: 5px; cursor: pointer;
+           font-size: .9rem; }
+  #btn-upload { background: #4a90d9; color: #fff; }
+  #btn-upload:disabled { background: #aaa; cursor: default; }
+  #btn-run { background: #27ae60; color: #fff; font-size: 1.1rem;
+             padding: 14px 32px; width: 100%; margin-top: 4px; }
+  #btn-run:disabled { background: #aaa; cursor: default; }
+  #upload-status { font-size: .85rem; margin-top: 8px; color: #555; }
+  #log { background: #111; color: #cfc; font-family: monospace; font-size: .78rem;
+         padding: 12px; border-radius: 5px; height: 220px; overflow-y: auto;
+         white-space: pre-wrap; }
+  #step-label { font-size: .9rem; color: #555; margin-bottom: 8px; }
+  video { width: 100%; border-radius: 6px; margin-top: 12px; }
+  #events-box { font-family: monospace; font-size: .82rem; background: #f8f8f8;
+                border: 1px solid #ddd; border-radius: 4px; padding: 10px;
+                max-height: 300px; overflow-y: auto; white-space: pre; }
+  .hidden { display: none; }
+  .sep { border: none; border-top: 1px solid #eee; margin: 16px 0; }
+</style>
+</head>
+<body>
+
+<h1>Fussball-Kommentierung</h1>
+
+<!-- 1. Video hochladen -->
+<div class="card">
+  <h2>1 · Video hochladen</h2>
+  <input type="file" id="file-input" accept="video/*">
+  <button id="btn-upload">Hochladen</button>
+  <div id="upload-status"></div>
+</div>
+
+<!-- 2. Teamfarben -->
+<div class="card">
+  <h2>2 · Teamfarben &amp; Angriffsrichtung</h2>
+  <div class="row3">
+    <div>
+      <label>Team 1 – Spielerfarbe</label>
+      <select id="t1-color"></select>
+    </div>
+    <div>
+      <label>Team 1 – Torwartfarbe</label>
+      <select id="t1-gk"></select>
+    </div>
+    <div>
+      <label>Team 1 – greift an nach</label>
+      <select id="t1-half">
+        <option value="right">rechts</option>
+        <option value="left">links</option>
+      </select>
+    </div>
+    <div></div>
+    <div></div>
+  </div>
+  <hr class="sep">
+  <div class="row3">
+    <div>
+      <label>Team 2 – Spielerfarbe</label>
+      <select id="t2-color"></select>
+    </div>
+    <div>
+      <label>Team 2 – Torwartfarbe</label>
+      <select id="t2-gk"></select>
+    </div>
+    <div>
+      <label>Team 2 – greift an nach</label>
+      <select id="t2-half">
+        <option value="left">links</option>
+        <option value="right">rechts</option>
+      </select>
+    </div>
+    <div></div>
+    <div></div>
+  </div>
+  <hr class="sep">
+  <div style="max-width:200px">
+    <label>Schiedsrichter-Farbe</label>
+    <select id="ref-color"></select>
+  </div>
+  <button id="btn-config" style="margin-top:8px;background:#888;color:#fff;">Konfiguration speichern</button>
+  <span id="config-status" style="font-size:.82rem;color:#555;margin-left:10px;"></span>
+</div>
+
+<!-- 3. Starten -->
+<div class="card">
+  <h2>3 · Pipeline starten</h2>
+  <button id="btn-run" disabled>▶ Analyse starten</button>
+  <div id="step-label" style="margin-top:12px;"></div>
+  <div id="log"></div>
+</div>
+
+<!-- 4. Ergebnis -->
+<div class="card hidden" id="result-card">
+  <h2>4 · Ergebnis</h2>
+  <video id="result-video" controls></video>
+  <hr class="sep">
+  <h2 style="margin-bottom:8px">Erkannte Ereignisse</h2>
+  <div id="events-box"></div>
+</div>
+
+<script>
+const COLORS = [
+  "black","white","gray","light-gray","dark-gray","charcoal","silver",
+  "red","dark-red","crimson","maroon",
+  "blue","dark-blue","light-blue","navy","sky-blue",
+  "green","dark-green","light-green",
+  "yellow","gold","orange","brown",
+  "purple","pink","cyan","teal","turquoise"
+];
+
+// Farbauswahl befüllen
+["t1-color","t1-gk","t2-color","t2-gk","ref-color"].forEach(id => {
+  const sel = document.getElementById(id);
+  COLORS.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c; opt.textContent = c;
+    sel.appendChild(opt);
+  });
+});
+// Standardwerte
+document.getElementById("t1-color").value = "black";
+document.getElementById("t1-gk").value    = "orange";
+document.getElementById("t2-color").value = "white";
+document.getElementById("t2-gk").value    = "blue";
+document.getElementById("ref-color").value = "light-blue";
+
+// Upload
+document.getElementById("btn-upload").onclick = async () => {
+  const file = document.getElementById("file-input").files[0];
+  if (!file) return;
+  const statusEl = document.getElementById("upload-status");
+  statusEl.textContent = "Wird hochgeladen…";
+  document.getElementById("btn-upload").disabled = true;
+
+  const res = await fetch("/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/octet-stream", "X-Filename": file.name },
+    body: file,
+  });
+  const data = await res.json();
+  document.getElementById("btn-upload").disabled = false;
+  if (data.ok) {
+    statusEl.textContent = "✓ " + file.name + " hochgeladen";
+    document.getElementById("btn-run").disabled = false;
+  } else {
+    statusEl.textContent = "Fehler: " + (data.error || "unbekannt");
+  }
+};
+
+// Konfiguration speichern
+document.getElementById("btn-config").onclick = async () => {
+  const body = {
+    team1_color: document.getElementById("t1-color").value,
+    team1_gk:    document.getElementById("t1-gk").value,
+    team1_half:  document.getElementById("t1-half").value,
+    team2_color: document.getElementById("t2-color").value,
+    team2_gk:    document.getElementById("t2-gk").value,
+    team2_half:  document.getElementById("t2-half").value,
+    referee_color: document.getElementById("ref-color").value,
+  };
+  const res  = await fetch("/config", { method: "POST",
+    headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const data = await res.json();
+  document.getElementById("config-status").textContent = data.ok ? "✓ gespeichert" : "Fehler";
+};
+
+// Pipeline starten
+let _poll = null;
+document.getElementById("btn-run").onclick = async () => {
+  document.getElementById("btn-run").disabled = true;
+  document.getElementById("log").textContent  = "";
+  document.getElementById("result-card").classList.add("hidden");
+
+  await fetch("/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      team1_color: document.getElementById("t1-color").value,
+      team1_gk:    document.getElementById("t1-gk").value,
+      team1_half:  document.getElementById("t1-half").value,
+      team2_color: document.getElementById("t2-color").value,
+      team2_gk:    document.getElementById("t2-gk").value,
+      team2_half:  document.getElementById("t2-half").value,
+      referee_color: document.getElementById("ref-color").value,
+    }),
+  });
+
+  await fetch("/run", { method: "POST" });
+
+  _poll = setInterval(async () => {
+    const res  = await fetch("/status");
+    const data = await res.json();
+
+    document.getElementById("step-label").textContent =
+      data.step === "done"  ? "✓ Fertig!" :
+      data.step === "error" ? "✗ Fehler: " + (data.error || "") :
+      "Schritt: " + data.step;
+
+    const logEl = document.getElementById("log");
+    logEl.textContent = data.log.join("\n");
+    logEl.scrollTop   = logEl.scrollHeight;
+
+    if (data.done) {
+      clearInterval(_poll);
+      document.getElementById("btn-run").disabled = false;
+      showResult();
+    } else if (data.step === "error") {
+      clearInterval(_poll);
+      document.getElementById("btn-run").disabled = false;
+    }
+  }, 2000);
+};
+
+async function showResult() {
+  document.getElementById("result-card").classList.remove("hidden");
+  document.getElementById("result-video").src = "/video?" + Date.now();
+
+  const res  = await fetch("/events");
+  const data = await res.json();
+  const events = data.events || [];
+  const lines = events.map(e =>
+    "[" + e.ts.toFixed(2) + "s] " + e.type +
+    (e.team ? "  Team " + e.team : "") +
+    (e.field_side ? "  Seite: " + e.field_side : "")
+  );
+  document.getElementById("events-box").textContent =
+    lines.length ? lines.join("\n") : "Keine Ereignisse gefunden.";
+}
+</script>
+</body>
+</html>

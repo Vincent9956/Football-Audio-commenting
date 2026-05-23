@@ -1,0 +1,15 @@
+{
+  "input.mp4": {
+    "team_1": {
+      "player_color": "black",
+      "goalkeeper_color": "orange",
+      "half": "right"
+    },
+    "team_2": {
+      "player_color": "white",
+      "goalkeeper_color": "blue",
+      "half": "left"
+    },
+    "referee": "light-blue"
+  }
+}
