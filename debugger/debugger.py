@@ -121,7 +121,18 @@ class Debugger:
                 pid = int(player_id) if hasattr(player_id, "__int__") else player_id
                 if pid not in self._player_cache:
                     bgr = self._sample_color(video_frames[frame_num], track["bbox"])
-                    self._player_cache[pid] = self._classify(bgr)
+                    team_id = self._classify(bgr)
+                    # 0 = Schiedsrichter-Klassifikation für einen Spieler → Teamfarben direkt vergleichen
+                    if team_id == 0 and len(self._ref_lab) >= 2:
+                        bgr_u8 = np.clip(bgr, 0, 255).astype(np.uint8).reshape(1, 1, 3)
+                        lab = cv2.cvtColor(bgr_u8, cv2.COLOR_BGR2LAB)[0, 0].astype(np.float64)
+                        team_refs = {k: v for k, v in self._ref_lab.items() if k.startswith("team_")}
+                        if team_refs:
+                            best = min(team_refs, key=lambda r: np.linalg.norm(lab - team_refs[r]))
+                            team_id = int(best.split("_")[1])
+                        else:
+                            team_id = 1
+                    self._player_cache[pid] = team_id
                 team = self._player_cache[pid]
                 tracks["players"][frame_num][player_id]["team"]       = team
                 tracks["players"][frame_num][player_id]["team_color"] = (

@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import glob
+import shutil
 import threading
 import subprocess
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -34,11 +35,20 @@ def _delete_stubs():
 
 
 def _run_pipeline():
-    output_avi = os.path.join(ROOT, "output_videos", "output_video.avi")
-    output_mp4 = os.path.join(ROOT, "commentary_video.mp4")
+    output_avi   = os.path.join(ROOT, "output_videos", "output_video.avi")
+    output_mp4   = os.path.join(ROOT, "commentary_video.mp4")
+    debug_avi    = os.path.join(ROOT, "output_videos", "debugging_video.avi")
+    debug_mp4    = os.path.join(ROOT, "output_videos", "debugging_video.mp4")
+
+    ffmpeg = shutil.which("ffmpeg") or "ffmpeg"
 
     steps = [
         ("Objekterkennung & Tracking",  [sys.executable, "main.py"]),
+        ("Debug-Video konvertieren", [
+            ffmpeg, "-y", "-i", debug_avi,
+            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+            "-movflags", "+faststart", debug_mp4,
+        ]),
         ("Team-Klassifikation",          [sys.executable, "prepare_teams.py"]),
         ("Ereigniserkennung",            [sys.executable, "readpkl.py"]),
         ("Kommentargenerierung", [
@@ -123,6 +133,13 @@ class _Handler(BaseHTTPRequestHandler):
                 self._serve_video(vp)
             else:
                 self._send(404, "text/plain", "Kein Video vorhanden")
+
+        elif path == "/debug-video":
+            vp = os.path.join(ROOT, "output_videos", "debugging_video.mp4")
+            if os.path.exists(vp):
+                self._serve_video(vp)
+            else:
+                self._send(404, "text/plain", "Kein Debug-Video vorhanden")
 
         else:
             self._send(404, "text/plain", "Not found")

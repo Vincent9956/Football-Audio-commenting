@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 3
+names: ['ball', 'player', 'referee']
+
+roboflow:
+  workspace: jonathan-frank
+  project: dfl_dataset
+  version: 3
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/jonathan-frank/dfl_dataset/dataset/3

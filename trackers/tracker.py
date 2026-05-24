@@ -192,22 +192,22 @@ class Tracker:
 
         if track_id is not None:
             cv2.rectangle(frame,
-                          (int(x1_rect),int(y1_rect) ),
+                          (int(x1_rect),int(y1_rect)),
                           (int(x2_rect),int(y2_rect)),
                           color,
                           cv2.FILLED)
-            
+
             x1_text = x1_rect+12
             if track_id > 99:
-                x1_text -=10
-            
+                x1_text -= 10
+
             cv2.putText(
                 frame,
                 f"{track_id}",
                 (int(x1_text),int(y1_rect+15)),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.6,
-                (0,0,0),
+                (255, 255, 255),
                 2
             )
 
@@ -257,9 +257,10 @@ class Tracker:
             referee_dict = tracks["referees"][frame_num]
 
             # Draw Players
+            _TEAM_COLORS = {1: (0, 0, 255), 2: (255, 0, 0)}  # BGR: rot / blau
             for track_id, player in player_dict.items():
-                color = player.get("team_color",(0,0,255))
-                frame = self.draw_ellipse(frame, player["bbox"],color, track_id)
+                color = _TEAM_COLORS.get(player.get("team"), (200, 200, 200))
+                frame = self.draw_ellipse(frame, player["bbox"], color, track_id)
 
                 if player.get('has_ball',False):
                     frame = self.draw_traingle(frame, player["bbox"],(0,0,255))
@@ -272,9 +273,6 @@ class Tracker:
             for track_id, ball in ball_dict.items():
                 frame = self.draw_traingle(frame, ball["bbox"],(0,255,0))
 
-
-            # Draw Team Ball Control
-            frame = self.draw_team_ball_control(frame, frame_num, team_ball_control)
 
             output_video_frames.append(frame)
 

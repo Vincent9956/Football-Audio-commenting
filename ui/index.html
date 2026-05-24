@@ -27,7 +27,10 @@
          padding: 12px; border-radius: 5px; height: 220px; overflow-y: auto;
          white-space: pre-wrap; }
   #step-label { font-size: .9rem; color: #555; margin-bottom: 8px; }
-  video { width: 100%; border-radius: 6px; margin-top: 12px; }
+  video { max-width: 640px; width: 100%; border-radius: 6px; margin-top: 12px; display: block; }
+  .video-toggle { margin-top: 12px; display: flex; gap: 8px; }
+  .video-toggle button { background: #ddd; color: #333; }
+  .video-toggle button.active { background: #4a90d9; color: #fff; }
   #events-box { font-family: monospace; font-size: .82rem; background: #f8f8f8;
                 border: 1px solid #ddd; border-radius: 4px; padding: 10px;
                 max-height: 300px; overflow-y: auto; white-space: pre; }
@@ -109,6 +112,10 @@
 <!-- 4. Ergebnis -->
 <div class="card hidden" id="result-card">
   <h2>4 · Ergebnis</h2>
+  <div class="video-toggle">
+    <button id="btn-vid-main" class="active" onclick="switchVideo('main')">Kommentar-Video</button>
+    <button id="btn-vid-debug" onclick="switchVideo('debug')">Debug-Video</button>
+  </div>
   <video id="result-video" controls></video>
   <hr class="sep">
   <h2 style="margin-bottom:8px">Erkannte Ereignisse</h2>
@@ -228,9 +235,24 @@ document.getElementById("btn-run").onclick = async () => {
   }, 2000);
 };
 
+function switchVideo(mode) {
+  const vid = document.getElementById("result-video");
+  const btnMain  = document.getElementById("btn-vid-main");
+  const btnDebug = document.getElementById("btn-vid-debug");
+  if (mode === "debug") {
+    vid.src = "/debug-video?" + Date.now();
+    btnDebug.classList.add("active");
+    btnMain.classList.remove("active");
+  } else {
+    vid.src = "/video?" + Date.now();
+    btnMain.classList.add("active");
+    btnDebug.classList.remove("active");
+  }
+}
+
 async function showResult() {
   document.getElementById("result-card").classList.remove("hidden");
-  document.getElementById("result-video").src = "/video?" + Date.now();
+  switchVideo("main");
 
   const res  = await fetch("/events");
   const data = await res.json();
