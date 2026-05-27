@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 PORT = 5500
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
-_state = {"step": "idle", "log": [], "done": False, "error": None}
+_state = {"step": "idle", "log": [], "done": False, "error": None, "model": "qwen3:8b"}
 _lock  = threading.Lock()
 
 
@@ -54,6 +54,7 @@ def _run_pipeline():
         ("Kommentargenerierung", [
             sys.executable, "createvoice.py",
             "--no-think",
+            "--model",        _state["model"],
             "--video",        output_avi,
             "--output-video", output_mp4,
         ]),
@@ -133,6 +134,14 @@ class _Handler(BaseHTTPRequestHandler):
                 self._serve_video(vp)
             else:
                 self._send(404, "text/plain", "Kein Video vorhanden")
+
+        elif path == "/timing":
+            tp = os.path.join(ROOT, "timing.json")
+            if os.path.exists(tp):
+                with open(tp, encoding="utf-8") as f:
+                    self._send(200, "application/json", f.read())
+            else:
+                self._json({})
 
         elif path == "/debug-video":
             vp = os.path.join(ROOT, "output_videos", "debugging_video.mp4")
@@ -227,6 +236,8 @@ class _Handler(BaseHTTPRequestHandler):
             }
             with open(os.path.join(ROOT, "teams_config.json"), "w", encoding="utf-8") as f:
                 json.dump(cfg, f, ensure_ascii=False, indent=2)
+            with _lock:
+                _state["model"] = body.get("model", "qwen3:8b").strip() or "qwen3:8b"
             self._json({"ok": True})
 
         elif path == "/run":

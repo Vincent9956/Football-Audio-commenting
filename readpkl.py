@@ -23,20 +23,22 @@ TEAMS_CONFIG = "teams_config.json"
 
 FPS              = 24     # default; overridden at runtime from video metadata
 VOTE_WINDOW      = 12     # possession smoothing half-window
-MIN_HOLD_FRAMES  = 8      # min frames for valid possession (~0.27s @ 30fps)
-SHOT_VEL         = 500   # px/frame raw ball speed = shot
+MIN_HOLD_FRAMES  = 24     # min frames for valid possession (~0.27s @ 30fps)
+SHOT_VEL         = 500   # px/frame raw ball speed → Schuss
+SHOT_GAP_DIST    = 350   # px Gesamtverschiebung über Tracking-Lücke → Schuss
+SHOT_GAP_MIN     = 4     # min Frames Lücke bevor Gap-Detektion anspringt
 SHOT_COOLDOWN    = 4.0    # s between SHOT events
-PRESS_RADIUS     = 150    # px radius for opponent proximity
-PRESS_COOLDOWN   = 5.0    # s between PRESS events
-PRESS_BALL_DIST  = 160    # px max ball-to-holder dist at fire time (sanity check)
-MIN_EVENT_TS     = 2.0    # s - ignore events in first seconds (tracking warmup)
+PRESS_RADIUS     = 250   # px radius for opponent proximity
+PRESS_COOLDOWN   = 4.0    # s between PRESS events
+PRESS_BALL_DIST  = 100    # px max ball-to-holder dist at fire time (sanity check)
+MIN_EVENT_TS     = 0.0    # s - ignore events in first seconds (tracking warmup)
 FRAME_WIDTH      = 1920   # overridden at runtime from video metadata
 FRAME_HEIGHT     = 1080   # overridden at runtime from video metadata
-DANGER_ZONE_FRAC = 0.18   # innermost fraction of frame = near goal/penalty area
+DANGER_ZONE_FRAC = 0.48   # innermost fraction of frame = near goal/penalty area
 
-POSSESSION_MIN_SEC    = 2.0   # min seconds of team possession to count
-POSSESSION_MIN_PASSES = 2     # min intra-team player changes (passes)
-POSSESSION_COOLDOWN   = 8.0   # s between POSSESSION_RUN events per team
+POSSESSION_MIN_SEC    = 1.2   # min seconds of team possession to count
+POSSESSION_MIN_PASSES = 1    # min intra-team player changes (passes)
+POSSESSION_COOLDOWN   = 0.0   # s between POSSESSION_RUN events per team
 
 PASS_COOLDOWN    = 1.0    # s between PASS events per team
 
@@ -48,7 +50,7 @@ PRIORITY_SPEED = {5: 1.5, 4: 1.25, 3: 1.1, 2: 1.0, 1: 1.0}
 # ═══════════════════════════════════════════════════════════════════
 def _apply_team_labels(tracks: dict):
 
-    label_to_id = {"team_1": 1, "team_2": 2}
+    label_to_id = {"team_1": 1, "gk_1": 1, "team_2": 2, "gk_2": 2}
     found = False
     for frame_players in tracks.get("players", []):
         for info in frame_players.values():
@@ -124,10 +126,53 @@ def _raw_ball_velocity(tracks):
                 dx = (cx - prev_cx) / gap
                 dy = (cy - prev_cy) / gap
                 vel[fi]   = (dx ** 2 + dy ** 2) ** 0.5
-                vel_x[fi] = dx   # positive = moving right
+                vel_x[fi] = dx
             prev_fi, prev_cx, prev_cy = fi, cx, cy
 
-    return vel, vel_x
+    # Gap-Detektion: Ball verschwindet > SHOT_GAP_MIN Frames und taucht weit entfernt
+    # wieder auf → typisches Muster bei Schüssen (Tracker verliert den schnellen Ball).
+    # Vergleicht RAW-Positionen vor und nach der Lücke (nicht interpolierte Frames).
+    vel_gap   = [None] * n
+    vel_gap_x = [None] * n
+    prev_gfi, prev_gcx, prev_gcy = None, None, None
+    for fi in range(n):
+        b = raw_ball[fi]
+        if b and 1 in b:
+            bb = b[1]["bbox"]
+            cx, cy = (bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2
+            if prev_gfi is not None:
+                gap = fi - prev_gfi
+                if gap > SHOT_GAP_MIN:
+                    dx    = cx - prev_gcx
+                    dy    = cy - prev_gcy
+                    dist  = (dx ** 2 + dy ** 2) ** 0.5
+                    if dist > SHOT_GAP_DIST:
+                        vel_gap[fi]   = dist
+                        vel_gap_x[fi] = dx
+            prev_gfi, prev_gcx, prev_gcy = fi, cx, cy
+        # kein else-Reset – wir behalten prev durch die Lücke
+
+    # Reversal-Filter: Wenn auf eine Gap-Detektion in Richtung A innerhalb
+    # von REVERSAL_WIN Frames eine Gap-Detektion in entgegengesetzter Richtung
+    # folgt, ist es sehr wahrscheinlich ein Tracking-Artefakt (Ball-ID-Wechsel).
+    # Solche Falschdetektionen werden unterdrückt.
+    REVERSAL_WIN = 15   # Frames vorausschauen
+    MIN_REVERSE_DX = 200  # Mindest-dx der Gegenbewegung (vermeidet Überunterdrückung)
+    for fi in range(n):
+        if vel_gap[fi] is None:
+            continue
+        dx = vel_gap_x[fi]
+        for k in range(1, REVERSAL_WIN + 1):
+            j = fi + k
+            if j < n and vel_gap_x[j] is not None:
+                counter = (dx > 0 and vel_gap_x[j] < -MIN_REVERSE_DX) or \
+                          (dx < 0 and vel_gap_x[j] > MIN_REVERSE_DX)
+                if counter:
+                    vel_gap[fi]   = None
+                    vel_gap_x[fi] = None
+                    break
+
+    return vel, vel_x, vel_gap, vel_gap_x
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -308,11 +353,39 @@ def _player_y(tracks, frame, player_id):
 # ═══════════════════════════════════════════════════════════════════
 #  6. EVENT DETECTORS
 # ═══════════════════════════════════════════════════════════════════
-def _detect_shots(possession, vel, vel_x, tracks, team_halves):
+def _detect_shots(possession, vel, vel_x, vel_gap, vel_gap_x,
+                  tracks, team_halves):
     events = []
     last_shot = -SHOT_COOLDOWN * 2
     had_poss = False
     last_team = None
+
+    def _try_shot(fi, v, vx, ts):
+        nonlocal last_shot, had_poss
+        half = team_halves.get(last_team) if last_team else None
+        if half == "left":
+            toward_goal = (vx is not None and vx < 0)
+        elif half == "right":
+            toward_goal = (vx is not None and vx > 0)
+        else:
+            toward_goal = True
+
+        if toward_goal and ts - last_shot >= SHOT_COOLDOWN:
+            field_side, attacking = _ball_field_info(
+                tracks, fi, last_team, team_halves)
+            flank = _compute_flank(
+                _ball_y(tracks, fi), team_halves.get(last_team))
+            events.append({
+                "ts":         round(ts, 3),
+                "type":       "SHOT",
+                "team":       last_team,
+                "field_side": field_side,
+                "attacking":  attacking,
+                "flank":      flank,
+                "priority":   5,
+            })
+            last_shot = ts
+            had_poss = False
 
     for fi in range(len(possession)):
         ts = fi / FPS
@@ -321,34 +394,15 @@ def _detect_shots(possession, vel, vel_x, tracks, team_halves):
             last_team = _team(tracks, fi, possession[fi])
             continue
 
+        # --- Raw velocity (high threshold) ---
         v  = vel[fi]
         vx = vel_x[fi]
         if v is not None and v > SHOT_VEL and had_poss:
-            # Direction check: ball must move toward opponent's goal
-            half = team_halves.get(last_team) if last_team else None
-            if half == "left":
-                toward_goal = (vx is not None and vx < 0)   # ball moving left
-            elif half == "right":
-                toward_goal = (vx is not None and vx > 0)   # ball moving right
-            else:
-                toward_goal = True  # no config -> accept all directions
+            _try_shot(fi, v, vx, ts)
 
-            if toward_goal and ts - last_shot >= SHOT_COOLDOWN:
-                field_side, attacking = _ball_field_info(
-                    tracks, fi, last_team, team_halves)
-                flank = _compute_flank(
-                    _ball_y(tracks, fi), team_halves.get(last_team))
-                events.append({
-                    "ts":         round(ts, 3),
-                    "type":       "SHOT",
-                    "team":       last_team,
-                    "field_side": field_side,
-                    "attacking":  attacking,
-                    "flank":      flank,
-                    "priority":   5,
-                })
-                last_shot = ts
-                had_poss = False
+        # --- Gap velocity (Ball taucht nach langer Lücke weit entfernt auf) ---
+        elif vel_gap[fi] is not None and had_poss:
+            _try_shot(fi, vel_gap[fi], vel_gap_x[fi], ts)
 
         if possession[fi] is None and fi > 0 and fi % int(1.5 * FPS) == 0:
             had_poss = False
@@ -536,6 +590,10 @@ def _detect_press(possession, raw_poss, tracks, team_halves):
     n = len(possession)
     for fi in range(n):
         holder = possession[fi]
+        # Wenn smooth=None, Fallback auf raw possession
+        # (z.B. bei fragmentiertem Besitz an der Zeitstelle 18 s)
+        if holder is None:
+            holder = raw_poss[fi]
         if holder is None:
             run_start = None
             continue
@@ -552,6 +610,11 @@ def _detect_press(possession, raw_poss, tracks, team_halves):
             run_start = None
             continue
 
+        h_team = fd[holder].get("team")
+        if not h_team or h_team == 0:   # Schiedsrichter/Unbekannte ignorieren
+            run_start = None
+            continue
+
         h_bbox = fd[holder].get("bbox", [])
         if not h_bbox:
             run_start = None
@@ -559,7 +622,6 @@ def _detect_press(possession, raw_poss, tracks, team_halves):
 
         hx = (h_bbox[0] + h_bbox[2]) / 2
         hy = (h_bbox[1] + h_bbox[3]) / 2
-        h_team = fd[holder].get("team")
 
         opp_close = 0
         for pid, pdata in fd.items():
@@ -743,7 +805,7 @@ def main():
     for tm, cnt in sorted(teams.items()):
         total = sum(teams.values())
         print("  Team " + str(tm) + "    : " + str(round(100 * cnt / total, 1)) + "%")
-    raw_vel, raw_vel_x = _raw_ball_velocity(tracks)
+    raw_vel, raw_vel_x, raw_vel_gap, raw_vel_gap_x = _raw_ball_velocity(tracks)
     hi_vel = [(fi, round(v, 1)) for fi, v in enumerate(raw_vel)
               if v and v > SHOT_VEL]
 
@@ -753,7 +815,7 @@ def main():
 
     print("Detecting events ...")
     events = (
-        _detect_shots(possession, raw_vel, raw_vel_x, tracks, team_halves)
+        _detect_shots(possession, raw_vel, raw_vel_x, raw_vel_gap, raw_vel_gap_x, tracks, team_halves)
         + _detect_possession_runs(raw_poss, tracks, team_halves)
         + _detect_danger(possession, tracks, team_halves)
         + _detect_press(possession, raw_poss, tracks, team_halves)

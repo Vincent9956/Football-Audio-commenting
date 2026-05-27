@@ -34,6 +34,11 @@
   #events-box { font-family: monospace; font-size: .82rem; background: #f8f8f8;
                 border: 1px solid #ddd; border-radius: 4px; padding: 10px;
                 max-height: 300px; overflow-y: auto; white-space: pre; }
+  #timing-box { font-size: .85rem; margin-top: 16px; }
+  #timing-box table { border-collapse: collapse; width: 100%; max-width: 480px; }
+  #timing-box th, #timing-box td { padding: 5px 10px; text-align: left;
+                                    border-bottom: 1px solid #eee; font-family: monospace; }
+  #timing-box th { color: #555; font-weight: normal; background: #f4f4f4; }
   .hidden { display: none; }
   .sep { border: none; border-top: 1px solid #eee; margin: 16px 0; }
 </style>
@@ -97,6 +102,12 @@
     <label>Schiedsrichter-Farbe</label>
     <select id="ref-color"></select>
   </div>
+  <hr class="sep">
+  <div style="max-width:300px">
+    <label>Ollama-Modell</label>
+    <input type="text" id="model-input" value="qwen3:8b" placeholder="z.B. qwen3:8b, llama3:8b"
+           style="font-family:monospace;">
+  </div>
   <button id="btn-config" style="margin-top:8px;background:#888;color:#fff;">Konfiguration speichern</button>
   <span id="config-status" style="font-size:.82rem;color:#555;margin-left:10px;"></span>
 </div>
@@ -120,6 +131,9 @@
   <hr class="sep">
   <h2 style="margin-bottom:8px">Erkannte Ereignisse</h2>
   <div id="events-box"></div>
+  <hr class="sep">
+  <h2 style="margin-bottom:8px">Modell-Laufzeiten</h2>
+  <div id="timing-box"></div>
 </div>
 
 <script>
@@ -206,6 +220,7 @@ document.getElementById("btn-run").onclick = async () => {
       team2_gk:    document.getElementById("t2-gk").value,
       team2_half:  document.getElementById("t2-half").value,
       referee_color: document.getElementById("ref-color").value,
+      model: document.getElementById("model-input").value,
     }),
   });
 
@@ -264,6 +279,38 @@ async function showResult() {
   );
   document.getElementById("events-box").textContent =
     lines.length ? lines.join("\n") : "Keine Ereignisse gefunden.";
+
+  const tr = await fetch("/timing");
+  if (tr.ok) {
+    const td = await tr.json();
+    if (td && td.entries && td.entries.length) {
+      const llm = td.entries.filter(e => e.label === "LLM");
+      const tts = td.entries.filter(e => e.label === "TTS");
+      let html = "<p style='margin-bottom:8px;color:#555'>Modell: <strong>" +
+                 (td.model || "–") + "</strong>" +
+                 (td.think ? "  (Thinking AN)" : "  (Thinking AUS)") + "</p>";
+      html += "<table><tr><th>Schritt</th><th>Ø Dauer</th><th>Gesamt</th></tr>";
+      if (llm.length) {
+        const total = llm.reduce((s,e)=>s+e.elapsed,0);
+        html += "<tr><td>LLM</td><td>" + (total/llm.length).toFixed(2) +
+                "s</td><td>" + total.toFixed(2) + "s</td></tr>";
+      }
+      if (tts.length) {
+        const total = tts.reduce((s,e)=>s+e.elapsed,0);
+        html += "<tr><td>TTS</td><td>" + (total/tts.length).toFixed(2) +
+                "s</td><td>" + total.toFixed(2) + "s</td></tr>";
+      }
+      html += "</table>";
+      html += "<details style='margin-top:10px'><summary style='cursor:pointer;color:#555'>Pro Event</summary>";
+      html += "<table style='margin-top:6px'><tr><th>@Sekunde</th><th>Schritt</th><th>Dauer</th></tr>";
+      td.entries.forEach(e => {
+        html += "<tr><td>" + e.ts + "s</td><td>" + e.label +
+                "</td><td>" + e.elapsed + "s</td></tr>";
+      });
+      html += "</table></details>";
+      document.getElementById("timing-box").innerHTML = html;
+    }
+  }
 }
 </script>
 </body>

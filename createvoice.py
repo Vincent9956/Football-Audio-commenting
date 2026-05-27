@@ -185,6 +185,12 @@ def generate_commentary(event, model=_DEFAULT_MODEL, system_prompt=None, think=T
         try:
             with _urllib_req.urlopen(req, timeout=120) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
+        except _urllib_err.HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")[:300]
+            raise RuntimeError(
+                "Ollama HTTP " + str(exc.code) + " – falsches Modell oder kein Chat-Modell?\n"
+                "Modell: " + model + "\nDetails: " + body
+            ) from exc
         except _urllib_err.URLError as exc:
             raise RuntimeError(
                 "Ollama nicht erreichbar (" + str(exc) + ").\n"
@@ -526,6 +532,24 @@ def main():
             print("Video not found: " + args.video)
 
     # _print_timing_summary()
+
+    # Timing-Daten als JSON speichern für die Web-UI
+    if _timing_log:
+        llm_times = [e[2] for e in _timing_log if e[0] == "LLM"]
+        tts_times = [e[2] for e in _timing_log if e[0] == "TTS"]
+        timing_data = {
+            "model": args.model,
+            "think": use_think,
+            "llm_avg":   round(sum(llm_times) / len(llm_times), 2) if llm_times else 0,
+            "llm_total": round(sum(llm_times), 2),
+            "tts_avg":   round(sum(tts_times) / len(tts_times), 2) if tts_times else 0,
+            "entries": [
+                {"label": e[0], "ts": round(e[1], 2), "elapsed": round(e[2], 2)}
+                for e in _timing_log
+            ],
+        }
+        with open("timing.json", "w", encoding="utf-8") as f:
+            json.dump(timing_data, f, ensure_ascii=False, indent=2)
 
 
 if __name__ == "__main__":
