@@ -2,7 +2,7 @@ import glob
 import cv2
 import numpy as np
 from utils import read_video, save_video
-from trackers import Tracker
+from object_tracker import ObjectTracker
 from player_ball_assigner import PlayerBallAssigner
 from camera_movement_estimator import CameraMovementEstimator
 from penalty_area_detector import PenaltyAreaDetector
@@ -28,7 +28,7 @@ def main():
 
     video_frames = read_video(video_path)
 
-    tracker = Tracker("models/best.pt")
+    tracker = ObjectTracker("models/best.pt")
     stub = "stubs/track_stubs.pkl"
     tracks = tracker.get_object_tracks(video_frames, read_from_stub=True, stub_path=stub)
     tracker.enrich_with_jersey_colors(tracks, video_frames, stub_path=stub)

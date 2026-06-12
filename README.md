@@ -2,9 +2,9 @@
 
 
 
->Hinweis zur Nutzung von KI:
+>Hinweise:
 >
->Im Rahmen dieses Projekts wurden KI-gestützte Werkzeuge eingesetzt, um die Entwicklung zu unterstützen und bestimmte Arbeitsschritte zu beschleunigen. Sämtliche generierten Codeabschnitte wurden jedoch eigenständig geprüft, getestet und bei Bedarf manuell angepasst oder verbessert. Die fachliche Konzeption, Implementierung und finale Qualitätssicherung erfolgten durch die Projektbeteiligten.
+>Die Arbeit orientiert sich konzeptionell am Repository "football_analysis" von Abdullah Tarek, erweitert dieses jedoch um eine automatisierte Audio-Kommentierung und enthält eine eigenständige Implementierung der verwendeten Komponenten. Im Rahmen dieses Projekts wurden KI-gestützte Werkzeuge eingesetzt, um die Entwicklung zu unterstützen und bestimmte Arbeitsschritte zu beschleunigen. Sämtliche generierten Codeabschnitte wurden jedoch eigenständig geprüft, getestet und bei Bedarf manuell angepasst oder verbessert. Die fachliche Konzeption, Implementierung und finale Qualitätssicherung erfolgten durch die Projektbeteiligten.
 
 
 Automatische Sprachkommentierung von Fußballvideos.  

@@ -70,12 +70,12 @@ def _apply_team_labels(tracks: dict):
 #  2. ENRICHMENT  (kein read_video – alle Daten aus Stubs)
 # ═══════════════════════════════════════════════════════════════════
 def build_tracks():
-    from trackers import Tracker
+    from object_tracker import ObjectTracker
     from camera_movement_estimator import CameraMovementEstimator
     from penalty_area_detector import PenaltyAreaDetector
 
     print("Loading tracking stubs ...")
-    tracker = Tracker(MODEL_PATH)
+    tracker = ObjectTracker(MODEL_PATH)
     tracks = tracker.get_object_tracks(
         frames=None, read_from_stub=True, stub_path=TRACK_STUB)
     tracker.add_position_to_tracks(tracks)
