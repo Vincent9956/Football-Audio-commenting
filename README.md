@@ -1,12 +1,6 @@
 # Fussball-Kommentierung
 
 
-
->Hinweise:
->
->Die Arbeit orientiert sich konzeptionell am Repository "football_analysis" von Abdullah Tarek, erweitert dieses jedoch um eine automatisierte Audio-Kommentierung und enthält eine eigenständige Implementierung der verwendeten Komponenten. Im Rahmen dieses Projekts wurden KI-gestützte Werkzeuge eingesetzt, um die Entwicklung zu unterstützen und bestimmte Arbeitsschritte zu beschleunigen. Sämtliche generierten Codeabschnitte wurden jedoch eigenständig geprüft, getestet und bei Bedarf manuell angepasst oder verbessert. Die fachliche Konzeption, Implementierung und finale Qualitätssicherung erfolgten durch die Projektbeteiligten.
-
-
 Automatische Sprachkommentierung von Fußballvideos.  
 Das System erkennt Spielereignisse per Computer Vision und generiert mit einem lokalen LLM deutsche Kommentarsätze, die per Text-to-Speech in einen Audiotrack umgewandelt und mit dem Video zusammengeführt werden.
 
@@ -107,3 +101,9 @@ commentary_video.mp4   Fertiges Ausgabevideo mit Kommentarspur
 | `ffmpeg not found` | ffmpeg installieren und sicherstellen, dass es im PATH liegt |
 | Kein Video gefunden | Videodatei muss in `input_videos/` liegen (mp4/avi/mkv/mov) |
 | Pipeline sehr langsam | Normales Verhalten auf CPU – Schritt 1 dauert am längsten |
+
+
+>Hinweise:
+>
+>Die Arbeit orientiert sich konzeptionell am Repository "football_analysis" von Abdullah Tarek, erweitert dieses jedoch um eine automatisierte Audio-Kommentierung und enthält eine eigenständige Implementierung der verwendeten Komponenten. Im Rahmen dieses Projekts wurden KI-gestützte Werkzeuge eingesetzt, um die Entwicklung zu unterstützen und bestimmte Arbeitsschritte zu beschleunigen. Sämtliche generierten Codeabschnitte wurden jedoch eigenständig geprüft, getestet und bei Bedarf manuell angepasst oder verbessert. Die fachliche Konzeption, Implementierung und finale Qualitätssicherung erfolgten durch die Projektbeteiligten.
+
