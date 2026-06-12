@@ -1,0 +1,185 @@
+{
+  "match_sec": 23.9,
+  "fps": 30.0,
+  "team_context": {
+    "1": {
+      "player_color": "black",
+      "goalkeeper_color": "orange",
+      "attacks": "right"
+    },
+    "2": {
+      "player_color": "white",
+      "goalkeeper_color": "blue",
+      "attacks": "left"
+    },
+    "referee": {
+      "color": "light-blue"
+    }
+  },
+  "events": [
+    {
+      "ts": 1.6,
+      "type": "PASS",
+      "player": 11,
+      "team": 1,
+      "field_side": "left",
+      "attacking": false,
+      "flank": "left",
+      "priority": 1,
+      "tts_speed": 1.0
+    },
+    {
+      "ts": 3.367,
+      "type": "PASS",
+      "player": 12,
+      "team": 1,
+      "field_side": "left",
+      "attacking": false,
+      "flank": "left",
+      "priority": 1,
+      "tts_speed": 1.0
+    },
+    {
+      "ts": 3.5,
+      "type": "POSSESSION_RUN",
+      "team": 1,
+      "passes": 1,
+      "duration": 2.0,
+      "field_side": "left",
+      "attacking": false,
+      "flank": "right",
+      "priority": 3,
+      "tts_speed": 1.1
+    },
+    {
+      "ts": 5.9,
+      "type": "PASS",
+      "player": 5,
+      "team": 1,
+      "field_side": "right",
+      "attacking": true,
+      "flank": "left",
+      "priority": 1,
+      "tts_speed": 1.0
+    },
+    {
+      "ts": 7.133,
+      "type": "SHOT",
+      "team": 0,
+      "field_side": "left",
+      "attacking": null,
+      "flank": null,
+      "priority": 5,
+      "tts_speed": 1.5
+    },
+    {
+      "ts": 7.167,
+      "type": "PASS",
+      "player": 7,
+      "team": 1,
+      "field_side": "left",
+      "attacking": false,
+      "flank": "left",
+      "priority": 1,
+      "tts_speed": 1.0
+    },
+    {
+      "ts": 11.767,
+      "type": "SHOT",
+      "team": 1,
+      "field_side": "right",
+      "attacking": true,
+      "flank": "left",
+      "priority": 5,
+      "tts_speed": 1.5
+    },
+    {
+      "ts": 13.2,
+      "type": "PRESS",
+      "player": 118,
+      "team": 1,
+      "field_side": "right",
+      "attacking": true,
+      "flank": "left",
+      "priority": 3,
+      "tts_speed": 1.1
+    },
+    {
+      "ts": 13.7,
+      "type": "PASS",
+      "player": 12,
+      "team": 1,
+      "field_side": "left",
+      "attacking": false,
+      "flank": "left",
+      "priority": 1,
+      "tts_speed": 1.0
+    },
+    {
+      "ts": 14.267,
+      "type": "PASS",
+      "player": 15,
+      "team": 2,
+      "field_side": "right",
+      "attacking": false,
+      "flank": "right",
+      "priority": 1,
+      "tts_speed": 1.0
+    },
+    {
+      "ts": 16.7,
+      "type": "PASS",
+      "player": 15,
+      "team": 2,
+      "field_side": "right",
+      "attacking": false,
+      "flank": "right",
+      "priority": 1,
+      "tts_speed": 1.0
+    },
+    {
+      "ts": 17.767,
+      "type": "PRESS",
+      "player": 106,
+      "team": 2,
+      "field_side": "right",
+      "attacking": false,
+      "flank": "right",
+      "priority": 3,
+      "tts_speed": 1.1
+    },
+    {
+      "ts": 18.4,
+      "type": "POSSESSION_RUN",
+      "team": 2,
+      "passes": 2,
+      "duration": 3.1,
+      "field_side": "right",
+      "attacking": false,
+      "flank": "right",
+      "priority": 3,
+      "tts_speed": 1.1
+    },
+    {
+      "ts": 19.233,
+      "type": "DANGER",
+      "player": 106,
+      "team": 2,
+      "field_side": "left",
+      "attacking": true,
+      "flank": "right",
+      "priority": 4,
+      "tts_speed": 1.25
+    },
+    {
+      "ts": 21.567,
+      "type": "SHOT",
+      "team": 2,
+      "field_side": "left",
+      "attacking": true,
+      "flank": "right",
+      "priority": 5,
+      "tts_speed": 1.5
+    }
+  ]
+}

@@ -139,10 +139,9 @@ class Debugger:
                     self.team_colors.get(team, (128, 128, 128))
                 )
 
-    def generate(self, video_frames, tracks, team_ball_control, tracker, cam, cam_mv,
+    def generate(self, video_frames, tracks, team_ball_control, tracker,
                  out_path: str, fps: float = 24):
         self._assign_teams(video_frames, tracks)
         frames = [f.copy() for f in video_frames]
         frames = tracker.draw_annotations(frames, tracks, team_ball_control)
-        frames = cam.draw_camera_movement(frames, cam_mv)
         save_video(frames, out_path, fps=fps)

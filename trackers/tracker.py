@@ -8,7 +8,7 @@ import cv2
 import sys
 from sklearn.cluster import KMeans
 sys.path.append('../')
-from utils import get_center_of_bbox, get_bbox_width, get_foot_position
+from utils import get_center_of_bbox, get_foot_position
 
 class Tracker:
     def __init__(self, model_path):
@@ -169,19 +169,6 @@ class Tracker:
     def draw_ellipse(self,frame,bbox,color,track_id=None):
         y2 = int(bbox[3])
         x_center, _ = get_center_of_bbox(bbox)
-        width = get_bbox_width(bbox)
-
-        cv2.ellipse(
-            frame,
-            center=(x_center,y2),
-            axes=(int(width), int(0.35*width)),
-            angle=0.0,
-            startAngle=-45,
-            endAngle=235,
-            color = color,
-            thickness=2,
-            lineType=cv2.LINE_4
-        )
 
         rectangle_width = 40
         rectangle_height=20

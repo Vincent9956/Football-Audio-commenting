@@ -1,34 +1,64 @@
 {
   "model": "qwen3:8b",
   "think": false,
-  "llm_avg": 2.6,
-  "llm_total": 5.2,
-  "tts_avg": 2.21,
+  "llm_avg": 3.0,
+  "llm_total": 14.99,
+  "tts_avg": 0.68,
   "entries": [
     {
       "label": "LLM",
+      "ts": 3.5,
+      "elapsed": 5.1
+    },
+    {
+      "label": "TTS",
+      "ts": 3.5,
+      "elapsed": 2.43
+    },
+    {
+      "label": "LLM",
+      "ts": 7.13,
+      "elapsed": 2.53
+    },
+    {
+      "label": "TTS",
+      "ts": 7.13,
+      "elapsed": 0.69
+    },
+    {
+      "label": "LLM",
       "ts": 11.77,
-      "elapsed": 2.65
+      "elapsed": 2.45
     },
     {
       "label": "TTS",
       "ts": 11.77,
-      "elapsed": 3.51
+      "elapsed": 0.09
+    },
+    {
+      "label": "LLM",
+      "ts": 19.23,
+      "elapsed": 2.44
+    },
+    {
+      "label": "TTS",
+      "ts": 19.23,
+      "elapsed": 0.1
     },
     {
       "label": "LLM",
       "ts": 21.57,
-      "elapsed": 2.55
+      "elapsed": 2.47
     },
     {
       "label": "TTS",
       "ts": 21.57,
-      "elapsed": 0.92
+      "elapsed": 0.1
     },
     {
       "label": "ffmpeg-mux",
       "ts": 0.0,
-      "elapsed": 0.11
+      "elapsed": 0.13
     }
   ]
 }

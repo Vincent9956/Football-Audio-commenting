@@ -64,7 +64,7 @@ def main():
 
     Debugger(video_path).generate(
         video_frames, tracks, team_ball_control,
-        tracker, cam, cam_mv,
+        tracker,
         "output_videos/debugging_video.avi", fps=video_fps,
     )
 
